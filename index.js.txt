@@ -1,0 +1,34 @@
+const express = require("express");
+const multer = require("multer");
+const FormData = require("form-data");
+
+const app = express();
+const upload = multer();
+
+app.post("/api/send-discord", upload.array("files", 10), async (req, res) => {
+  try {
+    const form = new FormData();
+
+    form.append("payload_json", JSON.stringify({
+      content: req.body.content || ""
+    }));
+
+    if (req.files) {
+      req.files.forEach((file, i) => {
+        form.append(`files[${i}]`, file.buffer, file.originalname);
+      });
+    }
+
+    await fetch(req.body.webhook_url, {
+      method: "POST",
+      body: form
+    });
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("error");
+  }
+});
+
+app.listen(3000, () => console.log("RUNNING 🚀"));
