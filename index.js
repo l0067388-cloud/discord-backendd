@@ -1,8 +1,11 @@
 const express = require("express");
 const multer = require("multer");
 const FormData = require("form-data");
+const cors = require("cors");
 
 const app = express();
+app.use(cors());
+
 const upload = multer();
 
 app.post("/api/send-discord", upload.array("files", 10), async (req, res) => {
