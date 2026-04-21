@@ -3,6 +3,8 @@ const multer = require("multer");
 const FormData = require("form-data");
 const cors = require("cors");
 
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+
 const app = express();
 app.use(cors());
 
