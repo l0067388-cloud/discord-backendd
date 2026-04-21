@@ -3,7 +3,7 @@ const multer = require("multer");
 const FormData = require("form-data");
 const cors = require("cors");
 
-// fetch (compatible con Render)
+// fetch compatible
 let fetchFn = global.fetch;
 if (!fetchFn) {
   fetchFn = (...args) =>
@@ -12,14 +12,14 @@ if (!fetchFn) {
 
 const app = express();
 
-// 🔥 IMPORTANTE
+// middlewares
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 const upload = multer();
 
-// 🧪 DEBUG (puedes quitar luego)
+// DEBUG (puedes quitar después)
 app.use((req, res, next) => {
   console.log("BODY:", req.body);
   next();
@@ -32,7 +32,7 @@ app.post("/api/send-discord", upload.array("files", 10), async (req, res) => {
       return res.status(400).json({ error: "webhook_url requerido" });
     }
 
-    // 🔥 contenido seguro
+    // contenido seguro
     const content =
       req.body.content && req.body.content.trim() !== ""
         ? req.body.content
@@ -40,24 +40,27 @@ app.post("/api/send-discord", upload.array("files", 10), async (req, res) => {
 
     const form = new FormData();
 
-    form.append(
-      "payload_json",
-      JSON.stringify({
-        content: content,
-      })
-    );
-
-    // 🔥 archivos (si llegan)
     if (req.files && req.files.length > 0) {
+      // ✅ CON IMÁGENES
+      form.append(
+        "payload_json",
+        JSON.stringify({
+          content: content,
+        })
+      );
+
       req.files.forEach((file, i) => {
         form.append(`files[${i}]`, file.buffer, file.originalname);
       });
+    } else {
+      // ✅ SIN IMÁGENES
+      form.append("content", content);
     }
 
     const response = await fetchFn(webhook, {
       method: "POST",
       body: form,
-      headers: form.getHeaders(), // 🔥 CLAVE
+      headers: form.getHeaders(),
     });
 
     if (!response.ok) {
@@ -72,7 +75,7 @@ app.post("/api/send-discord", upload.array("files", 10), async (req, res) => {
   }
 });
 
-// ruta para probar en navegador
+// ruta base
 app.get("/", (req, res) => {
   res.send("Servidor activo 🚀");
 });
