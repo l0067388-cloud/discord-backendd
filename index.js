@@ -1,24 +1,10 @@
 const express = require("express");
 const cors = require("cors");
-const FormData = require("form-data");
-
-// fetch compatible
-let fetchFn = global.fetch;
-if (!fetchFn) {
-  fetchFn = (...args) =>
-    import("node-fetch").then(({ default: f }) => f(...args));
-}
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-
-// DEBUG
-app.use((req, res, next) => {
-  console.log("BODY:", req.body);
-  next();
-});
 
 app.post("/api/send-discord", async (req, res) => {
   try {
@@ -33,60 +19,44 @@ app.post("/api/send-discord", async (req, res) => {
         ? content
         : "Cuenta disponible 🔥";
 
+    // 🔥 usar FormData NATIVO (NO la librería)
     const form = new FormData();
 
-    let filesAdded = 0;
-    const attachments = [];
+    form.append(
+      "payload_json",
+      JSON.stringify({
+        content: finalContent
+      })
+    );
 
-    // 🔥 Descargar imágenes y agregarlas como archivos
+    let index = 0;
+
     if (images && images.length > 0) {
-      for (let i = 0; i < images.length; i++) {
-        const imgUrl = images[i];
-
+      for (const imgUrl of images) {
         try {
           console.log("DESCARGANDO:", imgUrl);
 
-          const response = await fetchFn(imgUrl);
+          const response = await fetch(imgUrl);
           console.log("STATUS:", response.status);
 
-          if (!response.ok) {
-            console.log("❌ No se pudo descargar:", imgUrl);
-            continue;
-          }
+          if (!response.ok) continue;
 
-          const buffer = Buffer.from(await response.arrayBuffer());
+          const blob = await response.blob();
 
-          const filename = `image${filesAdded}.png`;
+          form.append("files[]", blob, `image${index}.png`);
 
-          form.append(`files[${filesAdded}]`, buffer, filename);
-
-          attachments.push({
-            id: filesAdded,
-            filename: filename,
-          });
-
-          filesAdded++;
+          index++;
         } catch (err) {
-          console.log("❌ Error descargando imagen:", err.message);
+          console.log("ERROR:", err.message);
         }
       }
     }
 
-    console.log("FILES ENVIADOS:", filesAdded);
+    console.log("FILES:", index);
 
-    // 🔥 CLAVE: payload_json con attachments
-    form.append(
-      "payload_json",
-      JSON.stringify({
-        content: finalContent,
-        attachments: attachments,
-      })
-    );
-
-    const discordRes = await fetchFn(webhook_url, {
+    const discordRes = await fetch(webhook_url, {
       method: "POST",
-      body: form,
-      headers: form.getHeaders(),
+      body: form
     });
 
     const text = await discordRes.text();
@@ -99,13 +69,9 @@ app.post("/api/send-discord", async (req, res) => {
     res.json({ ok: true });
 
   } catch (err) {
-    console.error("ERROR GENERAL:", err);
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
-});
-
-app.get("/", (req, res) => {
-  res.send("Servidor activo 🚀");
 });
 
 app.listen(3000, () => console.log("RUNNING 🚀"));
