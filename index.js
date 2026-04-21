@@ -28,7 +28,6 @@ app.post("/api/send-discord", async (req, res) => {
       return res.status(400).json({ error: "webhook_url requerido" });
     }
 
-    // 🔥 contenido seguro SIEMPRE
     const finalContent =
       content && content.trim() !== ""
         ? content
@@ -36,12 +35,16 @@ app.post("/api/send-discord", async (req, res) => {
 
     const form = new FormData();
 
-    // siempre mandamos contenido
-    form.append("content", finalContent);
+    // 🔥 IMPORTANTE: usar payload_json cuando hay archivos
+    form.append(
+      "payload_json",
+      JSON.stringify({
+        content: finalContent,
+      })
+    );
 
     let filesAdded = 0;
 
-    // 🔥 descargar imágenes y agregarlas como archivos
     if (images && images.length > 0) {
       for (let i = 0; i < images.length; i++) {
         const imgUrl = images[i];
@@ -59,9 +62,13 @@ app.post("/api/send-discord", async (req, res) => {
 
           const buffer = Buffer.from(await response.arrayBuffer());
 
-          form.append(`files[${filesAdded}]`, buffer, `image${filesAdded}.png`);
-          filesAdded++;
+          form.append(
+            `files[${filesAdded}]`,
+            buffer,
+            `image${filesAdded}.png`
+          );
 
+          filesAdded++;
         } catch (err) {
           console.log("❌ Error descargando imagen:", err.message);
         }
@@ -70,7 +77,6 @@ app.post("/api/send-discord", async (req, res) => {
 
     console.log("FILES ENVIADOS:", filesAdded);
 
-    // 🔥 enviar a Discord
     const discordRes = await fetchFn(webhook_url, {
       method: "POST",
       body: form,
@@ -85,14 +91,12 @@ app.post("/api/send-discord", async (req, res) => {
     }
 
     res.json({ ok: true });
-
   } catch (err) {
     console.error("ERROR GENERAL:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ruta base
 app.get("/", (req, res) => {
   res.send("Servidor activo 🚀");
 });
