@@ -3,7 +3,7 @@ const multer = require("multer");
 const FormData = require("form-data");
 const cors = require("cors");
 
-// fallback fetch
+// fetch (compatible con Render)
 let fetchFn = global.fetch;
 if (!fetchFn) {
   fetchFn = (...args) =>
@@ -11,12 +11,19 @@ if (!fetchFn) {
 }
 
 const app = express();
-app.use(cors());
 
+// 🔥 IMPORTANTE
+app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 const upload = multer();
+
+// 🧪 DEBUG (puedes quitar luego)
+app.use((req, res, next) => {
+  console.log("BODY:", req.body);
+  next();
+});
 
 app.post("/api/send-discord", upload.array("files", 10), async (req, res) => {
   try {
@@ -40,7 +47,7 @@ app.post("/api/send-discord", upload.array("files", 10), async (req, res) => {
       })
     );
 
-    // 🔥 archivos
+    // 🔥 archivos (si llegan)
     if (req.files && req.files.length > 0) {
       req.files.forEach((file, i) => {
         form.append(`files[${i}]`, file.buffer, file.originalname);
@@ -50,7 +57,7 @@ app.post("/api/send-discord", upload.array("files", 10), async (req, res) => {
     const response = await fetchFn(webhook, {
       method: "POST",
       body: form,
-      headers: form.getHeaders(),
+      headers: form.getHeaders(), // 🔥 CLAVE
     });
 
     if (!response.ok) {
@@ -65,6 +72,7 @@ app.post("/api/send-discord", upload.array("files", 10), async (req, res) => {
   }
 });
 
+// ruta para probar en navegador
 app.get("/", (req, res) => {
   res.send("Servidor activo 🚀");
 });
