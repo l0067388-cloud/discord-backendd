@@ -37,10 +37,11 @@ app.post("/api/send-discord", upload.array("files", 10), async (req, res) => {
       });
     }
 
-    const response = await fetchFn(webhook, {
-      method: "POST",
-      body: form,
-    });
+    const response = await await fetch(webhook, {
+  method: "POST",
+  body: form,
+  headers: form.getHeaders()
+});
 
     if (!response.ok) {
       const text = await response.text();
