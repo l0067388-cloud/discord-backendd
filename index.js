@@ -3,13 +3,6 @@ const multer = require("multer");
 const FormData = require("form-data");
 const cors = require("cors");
 
-// Node 22 ya trae fetch global, pero dejamos fallback por si acaso
-let fetchFn = global.fetch;
-const express = require("express");
-const multer = require("multer");
-const FormData = require("form-data");
-const cors = require("cors");
-
 // fallback fetch
 let fetchFn = global.fetch;
 if (!fetchFn) {
