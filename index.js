@@ -5,6 +5,13 @@ const cors = require("cors");
 
 // Node 22 ya trae fetch global, pero dejamos fallback por si acaso
 let fetchFn = global.fetch;
+const express = require("express");
+const multer = require("multer");
+const FormData = require("form-data");
+const cors = require("cors");
+
+// fallback fetch
+let fetchFn = global.fetch;
 if (!fetchFn) {
   fetchFn = (...args) =>
     import("node-fetch").then(({ default: f }) => f(...args));
@@ -22,32 +29,33 @@ app.post("/api/send-discord", upload.array("files", 10), async (req, res) => {
       return res.status(400).json({ error: "webhook_url requerido" });
     }
 
+    // 🔥 contenido seguro
+    const content =
+      req.body.content && req.body.content.trim() !== ""
+        ? req.body.content
+        : "Cuenta disponible 🔥";
+
     const form = new FormData();
 
     form.append(
       "payload_json",
       JSON.stringify({
-        const content = req.body.content && req.body.content.trim() !== ""
-  ? req.body.content
-  : "Cuenta disponible 🔥";
-
-form.append("payload_json", JSON.stringify({
-  content: content
-}));,
+        content: content,
       })
     );
 
+    // 🔥 archivos
     if (req.files && req.files.length > 0) {
       req.files.forEach((file, i) => {
         form.append(`files[${i}]`, file.buffer, file.originalname);
       });
     }
 
-    const response = await await fetch(webhook, {
-  method: "POST",
-  body: form,
-  headers: form.getHeaders()
-});
+    const response = await fetchFn(webhook, {
+      method: "POST",
+      body: form,
+      headers: form.getHeaders(),
+    });
 
     if (!response.ok) {
       const text = await response.text();
@@ -61,7 +69,6 @@ form.append("payload_json", JSON.stringify({
   }
 });
 
-// Ruta para probar en navegador
 app.get("/", (req, res) => {
   res.send("Servidor activo 🚀");
 });
