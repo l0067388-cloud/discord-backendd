@@ -27,7 +27,7 @@ app.post("/api/send-discord", upload.array("files", 10), async (req, res) => {
     form.append(
       "payload_json",
       JSON.stringify({
-        content: req.body.content || "",
+        content: req.body.content || " ",
       })
     );
 
