@@ -27,7 +27,13 @@ app.post("/api/send-discord", upload.array("files", 10), async (req, res) => {
     form.append(
       "payload_json",
       JSON.stringify({
-        content: req.body.content || " ",
+        const content = req.body.content && req.body.content.trim() !== ""
+  ? req.body.content
+  : "Cuenta disponible 🔥";
+
+form.append("payload_json", JSON.stringify({
+  content: content
+}));,
       })
     );
 
