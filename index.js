@@ -19,18 +19,11 @@ app.post("/api/send-discord", async (req, res) => {
         ? content
         : "Cuenta disponible 🔥";
 
-    // 🔥 usar FormData NATIVO (NO la librería)
     const form = new FormData();
-
-    form.append(
-      "payload_json",
-      JSON.stringify({
-        content: finalContent
-      })
-    );
 
     let index = 0;
 
+    // 🔥 descargar imágenes y agregarlas
     if (images && images.length > 0) {
       for (const imgUrl of images) {
         try {
@@ -43,7 +36,8 @@ app.post("/api/send-discord", async (req, res) => {
 
           const blob = await response.blob();
 
-          form.append("files[]", blob, `image${index}.png`);
+          // 🔥 IMPORTANTE: files[index]
+          form.append(`files[${index}]`, blob, `image${index}.png`);
 
           index++;
         } catch (err) {
@@ -53,6 +47,26 @@ app.post("/api/send-discord", async (req, res) => {
     }
 
     console.log("FILES:", index);
+
+    // 🔥 CREAR EMBEDS PARA MOSTRAR TODAS LAS IMÁGENES
+    const embeds = [];
+
+    for (let i = 0; i < index; i++) {
+      embeds.push({
+        image: {
+          url: `attachment://image${i}.png`
+        }
+      });
+    }
+
+    // 🔥 payload final
+    form.append(
+      "payload_json",
+      JSON.stringify({
+        content: finalContent,
+        embeds: embeds
+      })
+    );
 
     const discordRes = await fetch(webhook_url, {
       method: "POST",
