@@ -6,6 +6,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// debug opcional
+app.use((req, res, next) => {
+  console.log("BODY:", req.body);
+  next();
+});
+
 app.post("/api/send-discord", async (req, res) => {
   try {
     const { webhook_url, content, images } = req.body;
@@ -19,11 +25,15 @@ app.post("/api/send-discord", async (req, res) => {
         ? content
         : "Cuenta disponible 🔥";
 
+    // 🔥 FormData NATIVO (NO usar librería form-data)
     const form = new FormData();
+
+    // 🔥 clave: content normal (NO payload_json)
+    form.append("content", finalContent);
 
     let index = 0;
 
-    // 🔥 descargar imágenes y agregarlas
+    // 🔥 agregar imágenes como files[index]
     if (images && images.length > 0) {
       for (const imgUrl of images) {
         try {
@@ -36,37 +46,17 @@ app.post("/api/send-discord", async (req, res) => {
 
           const blob = await response.blob();
 
-          // 🔥 IMPORTANTE: files[index]
+          // 🔥 MUY IMPORTANTE: files[0], files[1]...
           form.append(`files[${index}]`, blob, `image${index}.png`);
 
           index++;
         } catch (err) {
-          console.log("ERROR:", err.message);
+          console.log("ERROR DESCARGANDO:", err.message);
         }
       }
     }
 
-    console.log("FILES:", index);
-
-    // 🔥 CREAR EMBEDS PARA MOSTRAR TODAS LAS IMÁGENES
-    const embeds = [];
-
-    for (let i = 0; i < index; i++) {
-      embeds.push({
-        image: {
-          url: `attachment://image${i}.png`
-        }
-      });
-    }
-
-    // 🔥 payload final
-    form.append(
-      "payload_json",
-      JSON.stringify({
-        content: finalContent,
-        embeds: embeds
-      })
-    );
+    console.log("FILES ENVIADOS:", index);
 
     const discordRes = await fetch(webhook_url, {
       method: "POST",
@@ -83,9 +73,13 @@ app.post("/api/send-discord", async (req, res) => {
     res.json({ ok: true });
 
   } catch (err) {
-    console.error(err);
+    console.error("ERROR GENERAL:", err);
     res.status(500).json({ error: err.message });
   }
+});
+
+app.get("/", (req, res) => {
+  res.send("Servidor activo 🚀");
 });
 
 app.listen(3000, () => console.log("RUNNING 🚀"));
