@@ -13,6 +13,9 @@ if (!fetchFn) {
 const app = express();
 app.use(cors());
 
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
 const upload = multer();
 
 app.post("/api/send-discord", upload.array("files", 10), async (req, res) => {
