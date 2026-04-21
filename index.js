@@ -1,9 +1,6 @@
 const express = require("express");
-const multer = require("multer");
-const FormData = require("form-data");
 const cors = require("cors");
 
-// fetch compatible
 let fetchFn = global.fetch;
 if (!fetchFn) {
   fetchFn = (...args) =>
@@ -12,55 +9,43 @@ if (!fetchFn) {
 
 const app = express();
 
-// middlewares
 app.use(cors());
-app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-const upload = multer();
-
-// DEBUG (puedes quitar después)
+// DEBUG
 app.use((req, res, next) => {
   console.log("BODY:", req.body);
   next();
 });
 
-app.post("/api/send-discord", upload.array("files", 10), async (req, res) => {
+app.post("/api/send-discord", async (req, res) => {
   try {
-    const webhook = req.body.webhook_url;
-    if (!webhook) {
+    const { webhook_url, content, images } = req.body;
+
+    if (!webhook_url) {
       return res.status(400).json({ error: "webhook_url requerido" });
     }
 
-    // contenido seguro
-    const content =
-      req.body.content && req.body.content.trim() !== ""
-        ? req.body.content
+    const finalContent =
+      content && content.trim() !== ""
+        ? content
         : "Cuenta disponible 🔥";
 
-    const form = new FormData();
+    let message = finalContent;
 
-    if (req.files && req.files.length > 0) {
-      // ✅ CON IMÁGENES
-      form.append(
-        "payload_json",
-        JSON.stringify({
-          content: content,
-        })
-      );
-
-      req.files.forEach((file, i) => {
-        form.append(`files[${i}]`, file.buffer, file.originalname);
-      });
-    } else {
-      // ✅ SIN IMÁGENES
-      form.append("content", content);
+    // 🔥 agregar imágenes como links
+    if (images && images.length > 0) {
+      message += "\n\n" + images.join("\n");
     }
 
-    const response = await fetchFn(webhook, {
+    const response = await fetchFn(webhook_url, {
       method: "POST",
-      body: form,
-      headers: form.getHeaders(),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        content: message,
+      }),
     });
 
     if (!response.ok) {
@@ -70,12 +55,11 @@ app.post("/api/send-discord", upload.array("files", 10), async (req, res) => {
 
     res.json({ ok: true });
   } catch (err) {
-    console.error("ERROR:", err);
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ruta base
 app.get("/", (req, res) => {
   res.send("Servidor activo 🚀");
 });
